@@ -1,0 +1,53 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+# Function to scrape additional product details
+def scrape_product_details(url):
+    headers = {
+        "User-Agent": "Your User Agent String Here"  # Replace with your user agent
+    }
+    
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    description_element = soup.select_one("#productTitle")
+    description = description_element.get_text(strip=True) if description_element else "N/A"
+    
+    asin_element = soup.find("th", text="ASIN")
+    asin = asin_element.find_next("td").get_text(strip=True) if asin_element else "N/A"
+    
+    product_description_element = soup.select_one(".a-section.a-spacing-medium")
+    product_description = product_description_element.get_text(strip=True) if product_description_element else "N/A"
+    
+    manufacturer_element = soup.find("th", text="Manufacturer")
+    manufacturer = manufacturer_element.find_next("td").get_text(strip=True) if manufacturer_element else "N/A"
+    
+    return {
+        "description": description,
+        "asin": asin,
+        "product_description": product_description,
+        "manufacturer": manufacturer
+    }
+
+# Scrape multiple product detail pages
+all_product_details = []
+
+for product in all_products:  # Use the previously scraped product URLs
+    product_url = product["url"]
+    product_details = scrape_product_details(product_url)
+    product.update(product_details)
+    all_product_details.append(product)
+
+# Export data to CSV
+csv_filename = "amazon_products.csv"
+
+with open(csv_filename, "w", newline="", encoding="utf-8") as csvfile:
+    fieldnames = ["name", "price", "url", "rating", "num_reviews",
+                  "description", "asin", "product_description", "manufacturer"]
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+    
+    writer.writeheader()
+    writer.writerows(all_product_details)
+
+print("Data exported to", csv_filename)
