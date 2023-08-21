@@ -1,0 +1,58 @@
+import requests
+from bs4 import BeautifulSoup
+
+# Function to scrape product details from a single page
+def scrape_page(url):
+    headers = {
+        "User-Agent": "Your User Agent String Here"  # Replace with your user agent
+    }
+    
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    products = []
+
+    for product in soup.select(".s-result-item"):
+        product_name_element = product.select_one(".a-size-medium.a-color-base.a-text-normal")
+        product_name = product_name_element.get_text(strip=True) if product_name_element else "N/A"
+        
+        product_price_element = product.select_one(".a-price .a-offscreen")
+        product_price = product_price_element.get_text(strip=True) if product_price_element else "N/A"
+        
+        product_url_element = product.select_one(".a-link-normal.a-text-normal")
+        product_url = "https://www.amazon.in" + product_url_element["href"] if product_url_element else "N/A"
+        
+        rating_element = product.select_one(".a-icon-star-small .a-icon-alt")
+        product_rating = rating_element.get_text(strip=True).split()[0] if rating_element else "N/A"
+        
+        reviews_element = product.select_one(".a-size-base")
+        num_reviews = reviews_element.get_text(strip=True).split()[0] if reviews_element else "0"
+        
+        products.append({
+            "name": product_name,
+            "price": product_price,
+            "url": product_url,
+            "rating": product_rating,
+            "num_reviews": num_reviews
+        })
+
+    return products
+
+# Scrape multiple pages
+base_url = "https://www.amazon.in/s?k=bags&crid=2M096C61O4MLT&qid=1653308124&sprefix=ba%2Caps%2C283&ref=sr_pg_{}"
+
+all_products = []
+
+for page_num in range(1, 21):  # Scraping 20 pages
+    page_url = base_url.format(page_num)
+    page_products = scrape_page(page_url)
+    all_products.extend(page_products)
+
+# Print the scraped data
+for product in all_products:
+    print("Product Name:", product["name"])
+    print("Product Price:", product["price"])
+    print("Product URL:", product["url"])
+    print("Product Rating:", product["rating"])
+    print("Number of Reviews:", product["num_reviews"])
+    print("=" * 50)
